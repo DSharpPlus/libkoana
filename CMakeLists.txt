@@ -54,11 +54,6 @@ string(CONCAT DPP_VERSION "${DPP_VERSION_MAJOR}.${DPP_VERSION_MINOR}.${DPP_VERSI
 
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${DPP_ROOT_PATH}/cmake/")
 
-if (WIN32 AND NOT MINGW AND BUILD_SHARED_LIBS)
-	message("-- INFO: Configuring .rc resource script")
-	configure_file("${DPP_ROOT_PATH}/src/dpp/dpp.rc.in" "${DPP_ROOT_PATH}/src/dpp/dpp.rc" NEWLINE_STYLE WIN32)
-endif()
-
 if (NOT DPP_NO_VCPKG AND EXISTS "${_VCPKG_ROOT_DIR}")
 	set(PROJECT_NAME "dpp")
 	project(
