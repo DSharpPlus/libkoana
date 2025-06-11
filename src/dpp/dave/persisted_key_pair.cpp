@@ -47,7 +47,7 @@ static std::map<std::string, std::shared_ptr<::mlspp::SignaturePrivateKey>> map;
 
 namespace dpp::dave::mls {
 
-static std::shared_ptr<::mlspp::SignaturePrivateKey> get_persisted_key_pair(dpp::cluster& creator, key_pair_context_type ctx, const std::string& session_id, ::mlspp::CipherSuite suite) {
+static std::shared_ptr<::mlspp::SignaturePrivateKey> get_persisted_key_pair(void (*log)(int32_t, const char*), key_pair_context_type ctx, const std::string& session_id, ::mlspp::CipherSuite suite) {
 	std::lock_guard lk(mtx);
 
 	std::string id = make_key_id(session_id, suite);
@@ -56,10 +56,10 @@ static std::shared_ptr<::mlspp::SignaturePrivateKey> get_persisted_key_pair(dpp:
 		return it->second;
 	}
 
-	std::shared_ptr<::mlspp::SignaturePrivateKey> ret = ::dpp::dave::mls::detail::get_generic_persisted_key_pair(creator, ctx, id, suite);
+	std::shared_ptr<::mlspp::SignaturePrivateKey> ret = ::dpp::dave::mls::detail::get_generic_persisted_key_pair(log, ctx, id, suite);
 
 	if (!ret) {
-		creator.log(dpp::ll_warning, "Failed to get key in get_persisted_key_pair");
+		log(dpp::ll_warning, "Failed to get key in get_persisted_key_pair");
 		return nullptr;
 	}
 
@@ -68,14 +68,14 @@ static std::shared_ptr<::mlspp::SignaturePrivateKey> get_persisted_key_pair(dpp:
 	return ret;
 }
 
-std::shared_ptr<::mlspp::SignaturePrivateKey> get_persisted_key_pair(dpp::cluster& creator, key_pair_context_type ctx, const std::string& session_id, protocol_version version)
+std::shared_ptr<::mlspp::SignaturePrivateKey> get_persisted_key_pair(void (*log)(int32_t, const char*), key_pair_context_type ctx, const std::string& session_id, protocol_version version)
 {
-	return get_persisted_key_pair(creator, ctx, session_id, ciphersuite_for_protocol_version(version));
+	return get_persisted_key_pair(log, ctx, session_id, ciphersuite_for_protocol_version(version));
 }
 
-KeyAndSelfSignature get_persisted_public_key(dpp::cluster& creator, key_pair_context_type ctx, const std::string& session_id, signature_version version) {
+KeyAndSelfSignature get_persisted_public_key(void (*log)(int32_t, const char*), key_pair_context_type ctx, const std::string& session_id, signature_version version) {
 	auto suite = ciphersuite_for_signature_version(version);
-	auto pair = get_persisted_key_pair(creator, ctx, session_id, suite);
+	auto pair = get_persisted_key_pair(log, ctx, session_id, suite);
 
 	if (!pair) {
 		return {};
@@ -89,11 +89,11 @@ KeyAndSelfSignature get_persisted_public_key(dpp::cluster& creator, key_pair_con
 	};
 }
 
-bool delete_persisted_key_pair(dpp::cluster& creator, key_pair_context_type ctx, const std::string& session_id, signature_version version) {
+bool delete_persisted_key_pair(void (*log)(int32_t, const char*), key_pair_context_type ctx, const std::string& session_id, signature_version version) {
 	std::string id = make_key_id(session_id, ciphersuite_for_signature_version(version));
 	std::lock_guard lk(mtx);
 	map.erase(id);
-	return ::dpp::dave::mls::detail::delete_generic_persisted_key_pair(creator, ctx, id);
+	return ::dpp::dave::mls::detail::delete_generic_persisted_key_pair(log, ctx, id);
 }
 
 }

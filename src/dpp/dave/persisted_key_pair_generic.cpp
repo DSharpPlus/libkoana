@@ -80,21 +80,21 @@ static std::filesystem::path get_key_storage_directory() {
 
 namespace dpp::dave::mls::detail {
 
-std::shared_ptr<::mlspp::SignaturePrivateKey> get_generic_persisted_key_pair(dpp::cluster& creator, key_pair_context_type ctx, const std::string& id, ::mlspp::CipherSuite suite)
+std::shared_ptr<::mlspp::SignaturePrivateKey> get_generic_persisted_key_pair(void (*log)(int32_t, const char*), key_pair_context_type ctx, const std::string& id, ::mlspp::CipherSuite suite)
 {
 	::mlspp::SignaturePrivateKey ret;
 	std::string curstr;
 	std::filesystem::path dir = get_key_storage_directory();
 
 	if (dir.empty()) {
-		creator.log(dpp::ll_warning, "Failed to determine key storage directory in get_persisted_key_pair");
+		log(dpp::ll_warning, "Failed to determine key storage directory in get_persisted_key_pair");
 		return nullptr;
 	}
 
 	std::error_code errc;
 	std::filesystem::create_directories(dir, errc);
 	if (errc) {
-		creator.log(dpp::ll_warning, "Failed to create key storage directory in get_persisted_key_pair: " + std::to_string(errc.value()));
+		log(dpp::ll_warning, ("Failed to create key storage directory in get_persisted_key_pair: " + std::to_string(errc.value())).c_str());
 		return nullptr;
 	}
 
@@ -103,7 +103,7 @@ std::shared_ptr<::mlspp::SignaturePrivateKey> get_generic_persisted_key_pair(dpp
 	if (std::filesystem::exists(file)) {
 		std::ifstream ifs(file, std::ios_base::in | std::ios_base::binary);
 		if (!ifs) {
-			creator.log(dpp::ll_warning, "Failed to open key in get_persisted_key_pair");
+			log(dpp::ll_warning, "Failed to open key in get_persisted_key_pair");
 			return nullptr;
 		}
 
@@ -111,7 +111,7 @@ std::shared_ptr<::mlspp::SignaturePrivateKey> get_generic_persisted_key_pair(dpp
 		s << ifs.rdbuf();
 		curstr = s.str();
 		if (!ifs) {
-			creator.log(dpp::ll_warning, "Failed to read key in get_persisted_key_pair");
+			log(dpp::ll_warning, "Failed to read key in get_persisted_key_pair");
 			return nullptr;
 		}
 
@@ -119,7 +119,7 @@ std::shared_ptr<::mlspp::SignaturePrivateKey> get_generic_persisted_key_pair(dpp
 			ret = ::mlspp::SignaturePrivateKey::from_jwk(suite, curstr);
 		}
 		catch (std::exception& ex) {
-			creator.log(dpp::ll_warning, "Failed to parse key in get_persisted_key_pair: " + std::string(ex.what()));
+			log(dpp::ll_warning, ("Failed to parse key in get_persisted_key_pair: " + std::string(ex.what())).c_str());
 			return nullptr;
 		}
 	}
@@ -137,7 +137,7 @@ std::shared_ptr<::mlspp::SignaturePrivateKey> get_generic_persisted_key_pair(dpp
 		int fd = open(tmpfile.c_str(), O_WRONLY | O_CLOEXEC | O_NOFOLLOW | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 #endif
 		if (fd < 0) {
-			creator.log(dpp::ll_warning, "Failed to open output file in get_persisted_key_pair: " + std::to_string(errno) + " (" + tmpfile.generic_string() + ")");
+			log(dpp::ll_warning, ("Failed to open output file in get_persisted_key_pair: " + std::to_string(errno) + " (" + tmpfile.generic_string() + ")").c_str());
 			return nullptr;
 		}
 
@@ -149,13 +149,13 @@ std::shared_ptr<::mlspp::SignaturePrivateKey> get_generic_persisted_key_pair(dpp
 		close(fd);
 #endif
 		if (written < 0 || (size_t)written != newstr.size()) {
-			creator.log(dpp::ll_warning, "Failed to write output file in get_persisted_key_pair: " + std::to_string(errno));
+			log(dpp::ll_warning, ("Failed to write output file in get_persisted_key_pair: " + std::to_string(errno)).c_str());
 			return nullptr;
 		}
 
 		std::filesystem::rename(tmpfile, file, errc);
 		if (errc) {
-			creator.log(dpp::ll_warning, "Failed to rename output file in get_persisted_key_pair: " + std::to_string(errc.value()));
+			log(dpp::ll_warning, ("Failed to rename output file in get_persisted_key_pair: " + std::to_string(errc.value())).c_str());
 			return nullptr;
 		}
 	}
@@ -167,12 +167,12 @@ std::shared_ptr<::mlspp::SignaturePrivateKey> get_generic_persisted_key_pair(dpp
 
 }
 
-bool delete_generic_persisted_key_pair(dpp::cluster& creator, key_pair_context_type ctx, const std::string& id)
+bool delete_generic_persisted_key_pair(void (*log)(int32_t, const char*), key_pair_context_type ctx, const std::string& id)
 {
 	std::error_code errc;
 	std::filesystem::path dir = get_key_storage_directory();
 	if (dir.empty()) {
-		creator.log(dpp::ll_warning, "Failed to determine key storage directory in get_persisted_key_pair");
+		log(dpp::ll_warning, "Failed to determine key storage directory in get_persisted_key_pair");
 		return false;
 	}
 

@@ -34,7 +34,6 @@
 #include <map>
 #include <set>
 #include <dpp/export.h>
-#include <dpp/snowflake.h>
 #include "persisted_key_pair.h"
 #include "key_ratchet.h"
 #include "version.h"
@@ -75,7 +74,7 @@ public:
 	 * @param auth_session_id auth session id (set to empty string to use a transient key pair)
 	 * @param callback callback for failure
 	 */
-	session(dpp::cluster& cluster, key_pair_context_type context, dpp::snowflake auth_session_id, mls_failure_callback callback) noexcept;
+	session(void (*log)(int32_t, const char*), key_pair_context_type context, uint64_t auth_session_id, mls_failure_callback callback) noexcept;
 
 	/**
 	 * @brief Destructor
@@ -92,7 +91,7 @@ public:
 	 * @param self_user_id bot's user id
 	 * @param transient_key transient private key
 	 */
-	void init(protocol_version version, dpp::snowflake group_id, dpp::snowflake self_user_id, std::shared_ptr<::mlspp::SignaturePrivateKey>& transient_key) noexcept;
+	void init(protocol_version version, uint64_t group_id, uint64_t self_user_id, std::shared_ptr<::mlspp::SignaturePrivateKey>& transient_key) noexcept;
 
 	/**
 	 * @brief Reset the session to defaults
@@ -131,7 +130,7 @@ public:
 	 * @param recognised_user_ids list of recognised user IDs
 	 * @return optional vector to send in reply as commit welcome
 	 */
-	std::optional<std::vector<uint8_t>> process_proposals(std::vector<uint8_t> proposals, std::set<dpp::snowflake> const& recognised_user_ids) noexcept;
+	std::optional<std::vector<uint8_t>> process_proposals(std::vector<uint8_t> proposals, std::set<uint64_t> const& recognised_user_ids) noexcept;
 
 	/**
 	 * @brief Process commit message from discord websocket
@@ -146,7 +145,7 @@ public:
 	 * @param recognised_user_ids Recognised user ID list
 	 * @return roster list of people in the vc
 	 */
-	std::optional<roster_map> process_welcome(std::vector<uint8_t> welcome, std::set<dpp::snowflake> const& recognised_user_ids) noexcept;
+	std::optional<roster_map> process_welcome(std::vector<uint8_t> welcome, std::set<uint64_t> const& recognised_user_ids) noexcept;
 
 	/**
 	 * @brief Get the bot user's key package for sending to websocket
@@ -159,7 +158,7 @@ public:
 	 * @param user_id User id to get ratchet for
 	 * @return The user's key ratchet for use in an encryptor or decryptor
 	 */
-	[[nodiscard]] std::unique_ptr<key_ratchet_interface> get_key_ratchet(dpp::snowflake user_id) const noexcept;
+	[[nodiscard]] std::unique_ptr<key_ratchet_interface> get_key_ratchet(uint64_t user_id) const noexcept;
 
 	/**
 	 * @brief callback for completion of pairwise fingerprint
@@ -174,7 +173,7 @@ public:
 	 * @param user_id User ID to get fingerprint for
 	 * @param callback Callback for completion
 	 */
-	void get_pairwise_fingerprint(uint16_t version, dpp::snowflake user_id, pairwise_fingerprint_callback callback) const noexcept;
+	void get_pairwise_fingerprint(uint16_t version, uint64_t user_id, pairwise_fingerprint_callback callback) const noexcept;
 
 private:
 	/**
@@ -182,7 +181,7 @@ private:
 	 * @param self_user_id Bot user id
 	 * @param transient_key Transient key
 	 */
-	void init_leaf_node(dpp::snowflake self_user_id, std::shared_ptr<::mlspp::SignaturePrivateKey>& transient_key) noexcept;
+	void init_leaf_node(uint64_t self_user_id, std::shared_ptr<::mlspp::SignaturePrivateKey>& transient_key) noexcept;
 
 	/**
 	 * @brief Reset join key
@@ -206,7 +205,7 @@ private:
 	 * @param recognised_user_ids list of recognised user IDs
 	 * @return
 	 */
-	[[nodiscard]] bool is_recognized_user_id(const ::mlspp::Credential& cred, std::set<dpp::snowflake> const& recognised_user_ids) const;
+	[[nodiscard]] bool is_recognized_user_id(const ::mlspp::Credential& cred, std::set<uint64_t> const& recognised_user_ids) const;
 
 	/**
 	 * @brief Validate proposals message
@@ -215,7 +214,7 @@ private:
 	 * @param recognised_user_ids recognised list of user IDs
 	 * @return true if validated
 	 */
-	[[nodiscard]] bool validate_proposal_message(::mlspp::AuthenticatedContent const& message, ::mlspp::State const& target_state, std::set<dpp::snowflake> const& recognised_user_ids) const;
+	[[nodiscard]] bool validate_proposal_message(::mlspp::AuthenticatedContent const& message, ::mlspp::State const& target_state, std::set<uint64_t> const& recognised_user_ids) const;
 
 	/**
 	 * @brief Verify that welcome state is valid
@@ -223,7 +222,7 @@ private:
 	 * @param recognised_user_ids list of recognised user IDs
 	 * @return
 	 */
-	[[nodiscard]] bool verify_welcome_state(::mlspp::State const& state, std::set<dpp::snowflake> const& recognised_user_ids) const;
+	[[nodiscard]] bool verify_welcome_state(::mlspp::State const& state, std::set<uint64_t> const& recognised_user_ids) const;
 
 	/**
 	 * @brief Check if can process a commit now
@@ -262,12 +261,12 @@ private:
 	/**
 	 * @brief Signing key id
 	 */
-	dpp::snowflake signing_key_id;
+	uint64_t signing_key_id;
 
 	/**
 	 * @brief The bot's user snowflake ID
 	 */
-	dpp::snowflake bot_user_id;
+	uint64_t bot_user_id;
 
 	/**
 	 * @brief The bot's key pair context
@@ -345,9 +344,9 @@ private:
 	mls_failure_callback failure_callback{};
 
 	/**
-	 * @brief DPP Cluster, used for logging
+	 * @brief Logging callback
 	 */
-	dpp::cluster& creator;
+	void (*log)(int32_t, const char*);
 };
 
 }
