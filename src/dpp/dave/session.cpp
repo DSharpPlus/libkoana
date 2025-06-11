@@ -627,7 +627,7 @@ std::unique_ptr<key_ratchet_interface> session::get_key_ratchet(uint64_t user_id
 
 	// this assumes the MLS ciphersuite produces an AES_GCM_128_KEY_BYTES sized key
 	// would need to be updated to a different ciphersuite if there's a future mismatch
-	return std::make_unique<mls_key_ratchet>(current_state->cipher_suite(), std::move(secret));
+	return std::make_unique<mls_key_ratchet>(log, current_state->cipher_suite(), std::move(secret));
 }
 
 void session::get_pairwise_fingerprint(uint16_t version, uint64_t user_id, pairwise_fingerprint_callback callback) const noexcept
