@@ -28,10 +28,10 @@
 #include <memory>
 #include <cstring>
 #include <dpp/exception.h>
-#include <dpp/cluster.h>
 #include "codec_utils.h"
 #include "array_view.h"
 #include "leb128.h"
+#include "log_level.h"
 
 #if defined(_MSC_VER)
 	#include <intrin.h>
@@ -199,7 +199,7 @@ void inbound_frame_processor::parse_frame(array_view<const uint8_t> frame)
 
 	constexpr auto min_supplemental_bytes_size = AES_GCM_127_TRUNCATED_TAG_BYTES + sizeof(supplemental_bytes_size) + sizeof(magic_marker);
 	if (frame.size() < min_supplemental_bytes_size) {
-		creator.log(dpp::ll_warning, "Encrypted frame is too small to contain min supplemental bytes");
+		log(dpp::ll_warning, "Encrypted frame is too small to contain min supplemental bytes");
 		return;
 	}
 
@@ -216,13 +216,13 @@ void inbound_frame_processor::parse_frame(array_view<const uint8_t> frame)
 
 	// Check the frame is large enough to contain the supplemental bytes
 	if (frame.size() < bytes_size) {
-		creator.log(dpp::ll_warning, "Encrypted frame is too small to contain supplemental bytes");
+		log(dpp::ll_warning, "Encrypted frame is too small to contain supplemental bytes");
 		return;
 	}
 
 	// Check that supplemental bytes size is large enough to contain the supplemental bytes
 	if (bytes_size < min_supplemental_bytes_size) {
-		creator.log(dpp::ll_warning, "Supplemental bytes size is too small to contain supplemental bytes");
+		log(dpp::ll_warning, "Supplemental bytes size is too small to contain supplemental bytes");
 		return;
 	}
 
@@ -237,7 +237,7 @@ void inbound_frame_processor::parse_frame(array_view<const uint8_t> frame)
 	auto end = bytes_size_buffer;
 	truncated_nonce = static_cast<uint32_t>(read_leb128(read_at, end));
 	if (read_at == nullptr) {
-		creator.log(dpp::ll_warning, "Failed to read truncated nonce");
+		log(dpp::ll_warning, "Failed to read truncated nonce");
 		return;
 	}
 
@@ -245,12 +245,12 @@ void inbound_frame_processor::parse_frame(array_view<const uint8_t> frame)
 	auto ranges_size = static_cast<uint8_t>(end - read_at);
 	deserialize_unencrypted_ranges(read_at, ranges_size, unencrypted_ranges);
 	if (read_at == nullptr) {
-		creator.log(dpp::ll_warning, "Failed to read unencrypted ranges");
+		log(dpp::ll_warning, "Failed to read unencrypted ranges");
 		return;
 	}
 
 	if (!validate_unencrypted_ranges(unencrypted_ranges, frame.size())) {
-		creator.log(dpp::ll_warning, "Invalid unencrypted ranges");
+		log(dpp::ll_warning, "Invalid unencrypted ranges");
 		return;
 	}
 
@@ -288,12 +288,12 @@ void inbound_frame_processor::parse_frame(array_view<const uint8_t> frame)
 size_t inbound_frame_processor::reconstruct_frame(array_view<uint8_t> frame) const
 {
 	if (!encrypted) {
-		creator.log(dpp::ll_warning, "Cannot reconstruct an invalid encrypted frame");
+		log(dpp::ll_warning, "Cannot reconstruct an invalid encrypted frame");
 		return 0;
 	}
 
 	if (authenticated.size() + plaintext.size() > frame.size()) {
-		creator.log(dpp::ll_warning, "Frame is too small to contain the decrypted frame");
+		log(dpp::ll_warning, "Frame is too small to contain the decrypted frame");
 		return 0;
 	}
 
@@ -367,7 +367,7 @@ void outbound_frame_processor::process_frame(array_view<const uint8_t> frame, co
 size_t outbound_frame_processor::reconstruct_frame(array_view<uint8_t> frame)
 {
 	if (unencrypted_bytes.size() + ciphertext_bytes.size() > frame.size()) {
-		creator.log(dpp::ll_warning, "Frame is too small to contain the encrypted frame");
+		log(dpp::ll_warning, "Frame is too small to contain the encrypted frame");
 		return 0;
 	}
 

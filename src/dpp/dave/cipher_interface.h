@@ -29,10 +29,6 @@
 #include "common.h"
 #include "array_view.h"
 
-namespace dpp {
-	class cluster;
-}
-
 namespace dpp::dave {
 
 /**
@@ -53,9 +49,12 @@ class cipher_interface { // NOLINT
 public:
 	/**
 	 * @brief Create cipher interface
-	 * @param _creator Creating cluster
+	 * @param log Logger
 	 */
-	cipher_interface(dpp::cluster& _creator) : creator(_creator) { };
+	cipher_interface(void (*log)(int32_t, const char*)) 
+	{
+		this->log = log;
+	}
 
 	/**
 	 * @brief Default destructor
@@ -87,9 +86,9 @@ public:
 protected:
 
 	/**
-	 * @brief DPP Cluster, used for logging
+	 * @brief Logger function
 	 */
-	dpp::cluster& creator;
+	void (*log)(int32_t, const char*);
 };
 
 /**
@@ -97,6 +96,6 @@ protected:
  * @param key encryption key
  * @return an instance of a class derived from cipher_interface
  */
-std::unique_ptr<cipher_interface> create_cipher(dpp::cluster& cl, const encryption_key& key);
+std::unique_ptr<cipher_interface> create_cipher(void (*log)(int32_t, const char*), const encryption_key& key);
 
 }

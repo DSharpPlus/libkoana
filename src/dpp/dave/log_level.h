@@ -1,4 +1,6 @@
-namespace dpp::dave
+#pragma once
+
+namespace dpp
 {
 
 /**

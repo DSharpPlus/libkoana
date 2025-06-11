@@ -24,11 +24,11 @@
  ************************************************************************************/
 #include "decryptor.h"
 #include <bytes/bytes.h>
-#include <dpp/cluster.h>
 #include <cstring>
 #include "common.h"
 #include "leb128.h"
 #include "scope_exit.h"
+#include "log_level.h"
 
 using namespace std::chrono_literals;
 
@@ -37,14 +37,14 @@ namespace dpp::dave {
 void decryptor::transition_to_key_ratchet(std::unique_ptr<key_ratchet_interface> key_ratchet, duration transition_expiry)
 {
 	if (key_ratchet) {
-		creator.log(dpp::ll_trace, "Transitioning to new key ratchet, expiry: " + std::to_string(transition_expiry.count()));
+		log(dpp::ll_trace, ("Transitioning to new key ratchet, expiry: " + std::to_string(transition_expiry.count())).c_str());
 	}
 
 	// Update the expiry time for all existing cryptor managers
 	update_cryptor_manager_expiry(transition_expiry);
 
 	if (key_ratchet) {
-		cryptor_managers.emplace_back(creator, current_clock, std::move(key_ratchet));
+		cryptor_managers.emplace_back(log, current_clock, std::move(key_ratchet));
 	}
 }
 
@@ -63,7 +63,7 @@ void decryptor::transition_to_passthrough_mode(bool passthrough_mode, duration t
 size_t decryptor::decrypt(media_type this_media_type, array_view<const uint8_t> encrypted_frame, array_view<uint8_t> frame)
 {
 	if (this_media_type != media_audio && this_media_type != media_video) {
-		creator.log(dpp::ll_trace, "decrypt failed, invalid media type: " + std::to_string(static_cast<int>(this_media_type)));
+		log(dpp::ll_trace, ("decrypt failed, invalid media type: " + std::to_string(static_cast<int>(this_media_type))).c_str());
 		return 0;
 	}
 
@@ -74,7 +74,7 @@ size_t decryptor::decrypt(media_type this_media_type, array_view<const uint8_t> 
 
 	// Skip decrypting for silence frames
 	if (this_media_type == media_audio && encrypted_frame.size() == OPUS_SILENCE_PACKET.size() && std::memcmp(encrypted_frame.data(), OPUS_SILENCE_PACKET.data(), OPUS_SILENCE_PACKET.size()) == 0) {
-		creator.log(dpp::ll_trace, "decrypt skipping silence of size: " + std::to_string(encrypted_frame.size()));
+		log(dpp::ll_trace, ("decrypt skipping silence of size: " + std::to_string(encrypted_frame.size())).c_str());
 		if (encrypted_frame.data() != frame.data()) {
 			std::memcpy(frame.data(), encrypted_frame.data(), encrypted_frame.size());
 		}
@@ -101,7 +101,7 @@ size_t decryptor::decrypt(media_type this_media_type, array_view<const uint8_t> 
 
 	// If the frame is not encrypted, and we can't pass it through, fail
 	if (!local_frame->is_encrypted()) {
-		creator.log(dpp::ll_warning, "decrypt failed, frame is not encrypted and pass through is disabled");
+		log(dpp::ll_warning, "decrypt failed, frame is not encrypted and pass through is disabled");
 		stats[this_media_type].decrypt_failure++;
 		return 0;
 	}
@@ -124,13 +124,13 @@ size_t decryptor::decrypt(media_type this_media_type, array_view<const uint8_t> 
 	}
 	else {
 		stats[this_media_type].decrypt_failure++;
-		creator.log(dpp::ll_warning,
-			"decrypt failed, no valid cryptor found, type: " + std::string(this_media_type ? "video" : "audio") +
+		log(dpp::ll_warning,
+			("decrypt failed, no valid cryptor found, type: " + std::string(this_media_type ? "video" : "audio") +
 			", encrypted frame size: " + std::to_string(encrypted_frame.size()) +
 			", plaintext frame size: " + std::to_string(frame.size()) +
 			", number of cryptor managers: " + std::to_string(cryptor_managers.size()) +
 			", pass through enabled: " + std::string(can_use_pass_through ? "yes" : "no")
-		);
+		).c_str());
 	}
 
 	auto end = current_clock.now();
@@ -156,7 +156,7 @@ bool decryptor::decrypt_impl(aead_cipher_manager& cipher_manager, media_type thi
 	auto generation = cipher_manager.compute_wrapped_generation(truncated_nonce >> RATCHET_GENERATION_SHIFT_BITS);
 
 	if (!cipher_manager.can_process_nonce(generation, truncated_nonce)) {
-		creator.log(dpp::ll_trace, "decrypt failed, cannot process nonce");
+		log(dpp::ll_trace, "decrypt failed, cannot process nonce");
 		return false;
 	}
 
@@ -164,7 +164,7 @@ bool decryptor::decrypt_impl(aead_cipher_manager& cipher_manager, media_type thi
 	cipher_interface* cipher = cipher_manager.get_cipher(generation);
 
 	if (cipher == nullptr) {
-		creator.log(dpp::ll_warning, "decrypt failed, no cryptor found for generation: " + std::to_string(generation));
+		log(dpp::ll_warning, ("decrypt failed, no cryptor found for generation: " + std::to_string(generation)).c_str());
 		return false;
 	}
 
@@ -195,7 +195,7 @@ void decryptor::update_cryptor_manager_expiry(duration expiry)
 void decryptor::cleanup_expired_cryptor_managers()
 {
 	while (!cryptor_managers.empty() && cryptor_managers.front().is_expired()) {
-		creator.log(dpp::ll_trace, "Removing expired cryptor manager");
+		log(dpp::ll_trace, "Removing expired cryptor manager");
 		cryptor_managers.pop_front();
 	}
 }
@@ -204,7 +204,7 @@ std::unique_ptr<inbound_frame_processor> decryptor::get_or_create_frame_processo
 {
 	std::lock_guard<std::mutex> lock(frame_processors_mutex);
 	if (frame_processors.empty()) {
-		return std::make_unique<inbound_frame_processor>(creator);
+		return std::make_unique<inbound_frame_processor>(log);
 	}
 	auto frame_processor = std::move(frame_processors.back());
 	frame_processors.pop_back();

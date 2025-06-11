@@ -38,10 +38,6 @@
 #include "frame_processors.h"
 #include "version.h"
 
-namespace dpp {
-	class cluster;
-}
-
 namespace dpp::dave {
 
 /**
@@ -78,9 +74,12 @@ class encryptor {
 public:
 	/**
 	 * @brief Constructor
-	 * @param cl Creator
+	 * @param log logger
 	 */
-	encryptor(dpp::cluster& cl) : creator(cl) { };
+	encryptor(void (*log)(int32_t, const char*)) 
+	{ 
+		this->log = log;
+	};
 
 	/**
 	 * @brief Return codes for encryptor::encrypt
@@ -295,9 +294,9 @@ private:
 	protocol_version current_protocol_version{max_protocol_version()};
 
 	/**
-	 * @brief DPP Cluster, used for logging
+	 * @brief Logger function
 	 */
-	dpp::cluster& creator;
+	void (*log)(int32_t, const char*);
 };
 
 }

@@ -31,10 +31,6 @@
 #include "common.h"
 #include "array_view.h"
 
-namespace dpp {
-	class cluster;
-}
-
 namespace dpp::dave {
 
 /**
@@ -90,9 +86,12 @@ class inbound_frame_processor {
 public:
 	/**
 	 * @brief Create inbound frame processor
-	 * @param _creator creating cluster
+	 * @param log logger
 	 */
-	inbound_frame_processor(dpp::cluster& _creator) : creator(_creator) { };
+	inbound_frame_processor(void (*log)(int32_t, const char*)) 
+	{ 
+		this->log = log;
+	};
 
 	/**
 	 * @brief Parse inbound frame
@@ -224,9 +223,9 @@ private:
 	std::vector<uint8_t> plaintext;
 
 	/**
-	 * @brief DPP Cluster, used for logging
+	 * @brief Logger function
 	 */
-	dpp::cluster& creator;
+	void (*log)(int32_t, const char*);
 };
 
 /**
@@ -236,9 +235,12 @@ class outbound_frame_processor {
 public:
 	/**
 	 * @brief Create outbound frame processor
-	 * @param _creator creating cluster
+	 * @param log logger
 	 */
-	outbound_frame_processor(dpp::cluster& _creator) : creator(_creator) { };
+	outbound_frame_processor(void (*log)(int32_t, const char*)) 
+	{ 
+		this->log = log;
+	};
 
 	/**
 	 * @brief Process outbound frame
@@ -345,9 +347,9 @@ private:
 	ranges unencrypted_ranges;
 
 	/**
-	 * @brief DPP Cluster, used for logging
+	 * @brief Logger function
 	 */
-	dpp::cluster& creator;
+	void (*log)(int32_t, const char*);
 };
 
 }

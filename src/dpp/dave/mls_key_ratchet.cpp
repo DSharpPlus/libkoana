@@ -23,24 +23,25 @@
  *
  ************************************************************************************/
 #include "mls_key_ratchet.h"
-#include <dpp/cluster.h>
+#include "log_level.h"
 
 namespace dpp::dave {
 
-mls_key_ratchet::mls_key_ratchet(dpp::cluster& cl, ::mlspp::CipherSuite suite, bytes base_secret) noexcept : ratchet(suite, std::move(base_secret)), creator(cl) {
+mls_key_ratchet::mls_key_ratchet(void (*log)(int32_t, const char*), ::mlspp::CipherSuite suite, bytes base_secret) noexcept : ratchet(suite, std::move(base_secret)) {
+	this->log = log;
 }
 
 mls_key_ratchet::~mls_key_ratchet() noexcept = default;
 
 encryption_key mls_key_ratchet::get_key(key_generation generation) noexcept
 {
-	creator.log(dpp::ll_debug, "Retrieving key for generation " + std::to_string(generation) + " from hash ratchet");
+	log(dpp::ll_debug, ("Retrieving key for generation " + std::to_string(generation) + " from hash ratchet").c_str());
 	try {
 		auto key_and_nonce = ratchet.get(generation);
 		return std::move(key_and_nonce.key.as_vec());
 	}
 	catch (const std::exception& e) {
-		creator.log(dpp::ll_warning, "Failed to retrieve key for generation " + std::to_string(generation) + ": " + std::string(e.what()));
+		log(dpp::ll_warning, ("Failed to retrieve key for generation " + std::to_string(generation) + ": " + std::string(e.what())).c_str());
 		return {};
 	}
 }

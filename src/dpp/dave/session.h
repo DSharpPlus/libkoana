@@ -50,10 +50,6 @@ namespace mlspp {
 	class State;
 }
 
-namespace dpp {
-	class cluster;
-}
-
 namespace dpp::dave::mls {
 
 struct queued_proposal;

@@ -23,13 +23,13 @@
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <bytes/bytes.h>
-#include <dpp/cluster.h>
 #include "common.h"
+#include "log_level.h"
 
 namespace dpp::dave {
 
-openssl_aead_cipher::openssl_aead_cipher(dpp::cluster& _creator, const encryption_key& key) :
-	cipher_interface(_creator),
+openssl_aead_cipher::openssl_aead_cipher(void (*log)(int32_t, const char*), const encryption_key& key) :
+	cipher_interface(log),
 	ssl_context(EVP_CIPHER_CTX_new()),
 	aes_key(std::vector(key.data(), key.data() + key.size())) {
 }
@@ -43,7 +43,7 @@ bool openssl_aead_cipher::encrypt(byte_view ciphertext_buffer_out, const_byte_vi
 	int len{};
 
 	if (EVP_EncryptInit_ex(ssl_context, EVP_aes_128_gcm(), nullptr, nullptr, nullptr) == 0) {
-		creator.log(dpp::ll_warning, "SSL Error: " + std::to_string(ERR_get_error()));
+		log(dpp::ll_warning, ("SSL Error: " + std::to_string(ERR_get_error())).c_str());
 		return false;
 	}
 
@@ -51,13 +51,13 @@ bool openssl_aead_cipher::encrypt(byte_view ciphertext_buffer_out, const_byte_vi
 	 * Set IV length
 	 */
 	if (EVP_CIPHER_CTX_ctrl(ssl_context, EVP_CTRL_GCM_SET_IVLEN, AES_GCM_128_NONCE_BYTES, nullptr) == 0) {
-		creator.log(dpp::ll_warning, "SSL Error: " + std::to_string(ERR_get_error()));
+		log(dpp::ll_warning, ("SSL Error: " + std::to_string(ERR_get_error())).c_str());
 		return false;
 	}
 
 	/* Initialise key and IV */
 	if (EVP_EncryptInit_ex(ssl_context, nullptr, nullptr, aes_key.data(), nonce_buffer.data()) == 0) {
-		creator.log(dpp::ll_warning, "SSL Error: " + std::to_string(ERR_get_error()));
+		log(dpp::ll_warning, ("SSL Error: " + std::to_string(ERR_get_error())).c_str());
 		return false;
 	}
 
@@ -66,7 +66,7 @@ bool openssl_aead_cipher::encrypt(byte_view ciphertext_buffer_out, const_byte_vi
 	 * required
 	 */
 	if (EVP_EncryptUpdate(ssl_context, nullptr, &len, additional_data.data(), (int)additional_data.size()) == 0) {
-		creator.log(dpp::ll_warning, "SSL Error: " + std::to_string(ERR_get_error()));
+		log(dpp::ll_warning, ("SSL Error: " + std::to_string(ERR_get_error())).c_str());
 		return false;
 	}
 
@@ -75,7 +75,7 @@ bool openssl_aead_cipher::encrypt(byte_view ciphertext_buffer_out, const_byte_vi
 	 * EVP_EncryptUpdate can be called multiple times if necessary
 	 */
 	if (EVP_EncryptUpdate(ssl_context, ciphertext_buffer_out.data(), &len, plaintext_buffer.data(), (int)plaintext_buffer.size()) == 0) {
-		creator.log(dpp::ll_warning, "SSL Error: " + std::to_string(ERR_get_error()));
+		log(dpp::ll_warning, ("SSL Error: " + std::to_string(ERR_get_error())).c_str());
 		return false;
 	}
 
@@ -84,13 +84,13 @@ bool openssl_aead_cipher::encrypt(byte_view ciphertext_buffer_out, const_byte_vi
 	 * this stage, but this does not occur in GCM mode
 	 */
 	if (EVP_EncryptFinal_ex(ssl_context, ciphertext_buffer_out.data() + len, &len) == 0) {
-		creator.log(dpp::ll_warning, "SSL Error: " + std::to_string(ERR_get_error()));
+		log(dpp::ll_warning, ("SSL Error: " + std::to_string(ERR_get_error())).c_str());
 		return false;
 	}
 
 	/* Get the tag */
 	if (EVP_CIPHER_CTX_ctrl(ssl_context, EVP_CTRL_GCM_GET_TAG, AES_GCM_127_TRUNCATED_TAG_BYTES, tag_buffer_out.data()) == 0) {
-		creator.log(dpp::ll_warning, "SSL Error: " + std::to_string(ERR_get_error()));
+		log(dpp::ll_warning, ("SSL Error: " + std::to_string(ERR_get_error())).c_str());
 		return false;
 	}
 
@@ -103,19 +103,19 @@ bool openssl_aead_cipher::decrypt(byte_view plaintext_buffer_out, const_byte_vie
 
 	/* Initialise the decryption operation. */
 	if (EVP_DecryptInit_ex(ssl_context, EVP_aes_128_gcm(), nullptr, nullptr, nullptr) == 0) {
-		creator.log(dpp::ll_warning, "SSL Error: " + std::to_string(ERR_get_error()));
+		log(dpp::ll_warning, ("SSL Error: " + std::to_string(ERR_get_error())).c_str());
 		return false;
 	}
 
 	/* Set IV length. Not necessary if this is 12 bytes (96 bits) */
 	if (EVP_CIPHER_CTX_ctrl(ssl_context, EVP_CTRL_GCM_SET_IVLEN, AES_GCM_128_NONCE_BYTES, nullptr) == 0) {
-		creator.log(dpp::ll_warning, "SSL Error: " + std::to_string(ERR_get_error()));
+		log(dpp::ll_warning, ("SSL Error: " + std::to_string(ERR_get_error())).c_str());
 		return false;	
 	}
 
 	/* Initialise key and IV */
 	if (EVP_DecryptInit_ex(ssl_context, nullptr, nullptr, aes_key.data(), nonce_buffer.data()) == 0) {
-		creator.log(dpp::ll_warning, "SSL Error: " + std::to_string(ERR_get_error()));
+		log(dpp::ll_warning, ("SSL Error: " + std::to_string(ERR_get_error())).c_str());
 		return false;
 	}
 
@@ -124,7 +124,7 @@ bool openssl_aead_cipher::decrypt(byte_view plaintext_buffer_out, const_byte_vie
 	 * required
 	 */
 	if (EVP_DecryptUpdate(ssl_context, nullptr, &len, additional_data.data(), (int)additional_data.size()) == 0) {
-		creator.log(dpp::ll_warning, "SSL Error: " + std::to_string(ERR_get_error()));
+		log(dpp::ll_warning, ("SSL Error: " + std::to_string(ERR_get_error())).c_str());
 		return false;
 	}
 
@@ -133,13 +133,13 @@ bool openssl_aead_cipher::decrypt(byte_view plaintext_buffer_out, const_byte_vie
 	 * EVP_DecryptUpdate can be called multiple times if necessary
 	 */
 	if (EVP_DecryptUpdate(ssl_context, plaintext_buffer_out.data(), &len, ciphertext_buffer.data(), (int)ciphertext_buffer.size()) == 0) {
-		creator.log(dpp::ll_warning, "SSL Error: " + std::to_string(ERR_get_error()));
+		log(dpp::ll_warning, ("SSL Error: " + std::to_string(ERR_get_error())).c_str());
 		return false;
 	}
 
 	/* Set expected tag value. Works in OpenSSL 1.0.1d and later */
 	if (EVP_CIPHER_CTX_ctrl(ssl_context, EVP_CTRL_GCM_SET_TAG, AES_GCM_127_TRUNCATED_TAG_BYTES, (void*)tag_buffer.data()) == 0) {
-		creator.log(dpp::ll_warning, "SSL Error: " + std::to_string(ERR_get_error()));
+		log(dpp::ll_warning, ("SSL Error: " + std::to_string(ERR_get_error())).c_str());
 		return false;
 	}
 
@@ -148,7 +148,7 @@ bool openssl_aead_cipher::decrypt(byte_view plaintext_buffer_out, const_byte_vie
 	 * anything else is a failure - the plaintext is not trustworthy.
 	 */
 	if (EVP_DecryptFinal_ex(ssl_context, plaintext_buffer_out.data() + len, &len) == 0) {
-		creator.log(dpp::ll_warning, "SSL Error: " + std::to_string(ERR_get_error()));
+		log(dpp::ll_warning, ("SSL Error: " + std::to_string(ERR_get_error())).c_str());
 		return false;
 	}
 

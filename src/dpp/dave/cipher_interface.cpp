@@ -24,13 +24,12 @@
  ************************************************************************************/
 #include "cipher_interface.h"
 #include "openssl_aead_cipher.h"
-#include <dpp/cluster.h>
 
 namespace dpp::dave {
 
-std::unique_ptr<cipher_interface> create_cipher(dpp::cluster& cl, const encryption_key& key)
+std::unique_ptr<cipher_interface> create_cipher(void (*log)(int32_t, const char*), const encryption_key& key)
 {
-	auto cipher = std::make_unique<openssl_aead_cipher>(cl, key);
+	auto cipher = std::make_unique<openssl_aead_cipher>(log, key);
 	return cipher->is_valid() ? std::move(cipher) : nullptr;
 }
 

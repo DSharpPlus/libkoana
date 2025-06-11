@@ -31,10 +31,10 @@
 #include <mutex>
 #include <functional>
 #include <iostream>
-#include <dpp/cluster.h>
 #include <bytes/bytes.h>
 #include <mls/crypto.h>
 #include "parameters.h"
+#include "log_level.h"
 
 static const std::string self_signature_label = "DiscordSelfSignature";
 

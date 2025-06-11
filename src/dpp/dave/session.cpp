@@ -32,13 +32,13 @@
 #include <dpp/export.h>
 #include <dpp/snowflake.h>
 #include <mls/state.h>
-#include <dpp/cluster.h>
 #include "mls_key_ratchet.h"
 #include "user_credential.h"
 #include "parameters.h"
 #include "persisted_key_pair.h"
 #include "util.h"
 #include "openssl/evp.h"
+#include "log_level.h"
 
 #define TRACK_MLS_ERROR(reason)				\
 	if (failure_callback) {				\

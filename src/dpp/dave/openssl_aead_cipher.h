@@ -26,10 +26,6 @@
 #include <vector>
 #include "cipher_interface.h"
 
-namespace dpp {
-	class cluster;
-}
-
 namespace dpp::dave {
 
 /**
@@ -46,7 +42,7 @@ public:
 	 * @param _creator Creator
 	 * @param key encryption key
 	 */
-	openssl_aead_cipher(dpp::cluster& _creator, const encryption_key& key);
+	openssl_aead_cipher(void (*log)(int32_t, const char*), const encryption_key& key);
 
 	/**
 	 * @brief Destructor

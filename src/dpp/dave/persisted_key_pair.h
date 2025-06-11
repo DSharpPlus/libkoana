@@ -37,10 +37,6 @@
 #include "parameters.h"
 #include "version.h"
 
-namespace dpp {
-	class cluster;
-}
-
 namespace mlspp {
 	struct SignaturePrivateKey;
 };

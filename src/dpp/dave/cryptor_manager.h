@@ -34,10 +34,6 @@
 #include "common.h"
 #include "clock.h"
 
-namespace dpp {
-	class cluster;
-}
-
 namespace dpp::dave {
 
 /**
@@ -75,11 +71,11 @@ public:
 
 	/**
 	 * @brief Constructor
-	 * @param cl Creating cluster
+	 * @param log Logger
 	 * @param clock chrono clock
 	 * @param key_ratchet key ratchet for cipher
 	 */
-	aead_cipher_manager(dpp::cluster& cl, const clock_interface& clock, std::unique_ptr<key_ratchet_interface> key_ratchet);
+	aead_cipher_manager(void (*log)(int32_t, const char*), const clock_interface& clock, std::unique_ptr<key_ratchet_interface> key_ratchet);
 
 	/**
 	 * @brief Update cipher expiry
@@ -195,9 +191,9 @@ private:
 	std::deque<big_nonce> missing_nonces;
 
 	/**
-	 * @brief DPP Cluster, used for logging
+	 * @brief Logger function
 	 */
-	dpp::cluster& creator;
+	void (*log)(int32_t, const char*);
 
 };
 

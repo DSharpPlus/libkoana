@@ -38,9 +38,9 @@
 #include <fcntl.h>
 #include <bytes/bytes.h>
 #include <mls/crypto.h>
-#include <dpp/cluster.h>
 #include "parameters.h"
 #include "persisted_key_pair.h"
+#include "log_level.h"
 
 static const std::string_view key_storage_dir = "Discord Key Storage";
 

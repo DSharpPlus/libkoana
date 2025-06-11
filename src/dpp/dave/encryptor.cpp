@@ -27,13 +27,13 @@
 #include <cstring>
 #include <bytes/bytes.h>
 #include <dpp/exception.h>
-#include <dpp/cluster.h>
 #include "common.h"
 #include "cryptor_manager.h"
 #include "codec_utils.h"
 #include "array_view.h"
 #include "leb128.h"
 #include "scope_exit.h"
+#include "log_level.h"
 
 using namespace std::chrono_literals;
 
@@ -56,7 +56,7 @@ void encryptor::set_passthrough_mode(bool passthrough_mode)
 
 encryptor::result_code encryptor::encrypt(media_type this_media_type, uint32_t ssrc, array_view<const uint8_t> frame, array_view<uint8_t> encrypted_frame, size_t* bytes_written) {
 	if (this_media_type != media_audio && this_media_type != media_video) {
-		creator.log(dpp::ll_warning, "encrypt failed, invalid media type: " + std::to_string(static_cast<int>(this_media_type)));
+		log(dpp::ll_warning, ("encrypt failed, invalid media type: " + std::to_string(static_cast<int>(this_media_type))).c_str());
 		return result_code::rc_encryption_failure;
 	}
 
@@ -242,7 +242,7 @@ std::unique_ptr<outbound_frame_processor> encryptor::get_or_create_frame_process
 {
 	std::lock_guard<std::mutex> lock(frame_processors_mutex);
 	if (frame_processors.empty()) {
-		return std::make_unique<outbound_frame_processor>(creator);
+		return std::make_unique<outbound_frame_processor>(log);
 	}
 	auto frame_processor = std::move(frame_processors.back());
 	frame_processors.pop_back();
@@ -268,7 +268,7 @@ encryptor::cryptor_and_nonce encryptor::get_next_cryptor_and_nonce()
 		current_key_generation = generation;
 
 		auto key = ratchet->get_key(current_key_generation);
-		cryptor = create_cipher(creator, key);
+		cryptor = create_cipher(log, key);
 	}
 
 	return {cryptor, truncated_nonce};
