@@ -32,12 +32,14 @@ k_export koana_context* koana_create_context(void (*log)(int32_t, const char*))
 
     koana_context* context = new koana_context(log);
     context->dave_session = std::make_unique<session>(log, nullptr, 0ull, error_callback);
+    context->bot_encryptor = std::make_unique<encryptor>(log);
 
     return context;
 }
 
 k_export void koana_reinit_context(koana_context* context, uint16_t protocol_version, uint64_t channel_id, uint64_t bot_user_id)
 {
+    context->bot_id = bot_user_id;
     context->dave_session->init(protocol_version, channel_id, bot_user_id, context->mls_key);
 }
 
@@ -151,6 +153,51 @@ k_export native_vector* koana_get_marshalled_key_package(koana_context* context)
     return new native_vector(context->dave_session->get_marshalled_key_package());
 }
 
+k_export int32_t koana_decrypt_frame
+(
+    koana_context* context,
+    uint64_t user_id,
+    const uint8_t* encrypted_frame,
+    int32_t encrypted_length,
+    uint8_t* decrypted_frame,
+    int32_t decrypted_length
+)
+{
+    array_view<uint8_t const> encrypted = array_view<uint8_t const>(encrypted_frame, (size_t)encrypted_length);
+    array_view<uint8_t> decrypted = array_view<uint8_t>(decrypted_frame, (size_t)decrypted_length);
+
+    size_t decrypted_size = context->decryptors[user_id]->decrypt(media_audio, encrypted, decrypted);
+
+    // having to decrypt a 2gb+ packet in a real-time gateway would be a little unhinged.
+    return (int32_t)decrypted_size;
+}
+
+k_export koana_error koana_encrypt_frame
+(
+    koana_context* context,
+    uint32_t ssrc,
+    const uint8_t* unencrypted_frame,
+    int32_t unencrypted_length,
+    uint8_t* encrypted_frame,
+    int32_t encrypted_length,
+    int32_t* encrypted_size
+)
+{
+    array_view<uint8_t const> unencrypted = array_view<uint8_t const>(unencrypted_frame, (size_t)unencrypted_length);
+    array_view<uint8_t> encrypted = array_view<uint8_t>(encrypted_frame, (size_t)encrypted_length);
+
+    size_t size;
+    encryptor::result_code result = context->bot_encryptor->encrypt(media_audio, ssrc, unencrypted, encrypted, &size);
+
+    if (result == encryptor::rc_encryption_failure)
+    {
+        return encryption_failure;
+    }
+
+    *encrypted_size = (int32_t)size;
+    return success;
+}
+
 // context helper implementation
 
 void koana_context::update_cached_users(roster_map diff)
@@ -194,7 +241,34 @@ void koana_context::update_cached_users(roster_map diff)
 
 void koana_context::update_user_decryptors()
 {
-    
+    if (this->cached_users.empty())
+    {
+        this->log(ll_error, "no users were in the call when trying to update decryptors for users!");
+        return;
+    }
+
+    this->log(ll_debug, ("updating decryptors for " + std::to_string(this->cached_users.size()) + " users").c_str());
+
+    for (const auto&[id, key] : this->cached_users)
+    {
+        if (id == this->bot_id)
+        {
+            continue;
+        }
+
+        std::map<uint64_t, std::unique_ptr<dpp::dave::decryptor>>::iterator current_decryptor = this->decryptors.find(id);
+
+        if (current_decryptor == this->decryptors.end())
+        {
+            this->log(ll_debug, ("creating new decryptor for user " + std::to_string(id)).c_str());
+            auto [iter, inserted] = this->decryptors.emplace(id, std::make_unique<decryptor>(this->log));
+            current_decryptor = iter;
+        }
+
+        current_decryptor->second->transition_to_key_ratchet(this->dave_session->get_key_ratchet(id));
+    }
+
+    this->bot_encryptor->set_key_ratchet(this->dave_session->get_key_ratchet(this->bot_id));
 }
 
 } // namespace

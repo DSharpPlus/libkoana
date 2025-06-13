@@ -32,10 +32,13 @@ struct koana_context
     std::map<uint64_t, std::unique_ptr<decryptor>> decryptors;
 
     // the MLS encryptor
-    std::unique_ptr<encryptor> encryptor;
+    std::unique_ptr<encryptor> bot_encryptor;
 
     // the users and keys currently present in the session
     roster_map cached_users{};
+
+    // the bot's user ID
+    uint64_t bot_id;
 
     // logging
     void (*log)(int32_t, const char*);
