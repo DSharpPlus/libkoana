@@ -1,97 +1,78 @@
-#
-# D++ (DPP), The Lightweight C++ Discord Library
-#
-# Copyright 2021 Craig Edwards <support@brainbox.cc>
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
+cmake_minimum_required (VERSION 3.19)
 
-cmake_minimum_required (VERSION 3.16)
+include(${CMAKE_ROOT}/Modules/FindOpenSSL.cmake)
+
 set(CMAKE_CXX_STANDARD 17)
- 
-option(BUILD_SHARED_LIBS "Build shared libraries" ON)
-option(BUILD_VOICE_SUPPORT "Build voice support" ON)
-option(RUN_LDCONFIG "Run ldconfig after installation" ON)
-option(DPP_INSTALL "Generate the install target" ON)
-option(DPP_BUILD_TEST "Build the test program" ON)
-option(DPP_NO_VCPKG "No VCPKG" OFF)
-option(DPP_NO_CONAN "No Conan" OFF)
-option(CONAN_EXPORTED "Exported via Conan - DO NOT SET MANUALLY" OFF)
-option(DPP_NO_CORO "Remove Support for C++20 coroutines" OFF)
-option(DPP_FORMATTERS "Support for C++20 formatters" OFF)
-option(DPP_USE_EXTERNAL_JSON "Use an external installation of nlohmann::json" OFF)
-option(DPP_USE_PCH "Use precompiled headers to speed up compilation" OFF)
-option(AVX_TYPE "Force AVX type for speeding up audio mixing" 1)
-
-include(CheckCXXSymbolExists)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-add_compile_definitions(DPP_BUILD)
+
+set(BUILD_SHARED_LIBS ON)
+
+add_compile_definitions(KOANA_BUILD)
 add_compile_definitions(NOMINMAX)
 
-set(DPP_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+set(KOANA_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+set(KOANA_SOURCE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src/koana)
 
-file(READ "${DPP_ROOT_PATH}/include/dpp/version.h" version_h)
+set(KOANA_VERSION "0.1.0")
 
-if(NOT version_h MATCHES "DPP_VERSION_SHORT ([0-9][0-9])([0-9][0-9])([0-9][0-9])")
-	message(FATAL_ERROR "Cannot get DPP_VERSION_SHORT from version.h")
-endif()
+if(WIN32)
+	# first, lie to mlspp
+	set(OPENSSL_VERSION "1.1.1f")
+	
+	# then, set the include directories
+	set(OPENSSL_INCLUDE_DIR "${KOANA_ROOT_PATH}/win32/include")
+	set(OPENSSL_LIBRARIES "${KOANA_ROOT_PATH}/win32/lib")
 
-math(EXPR DPP_VERSION_MAJOR "${CMAKE_MATCH_1}")
-math(EXPR DPP_VERSION_MINOR "${CMAKE_MATCH_2}")
-math(EXPR DPP_VERSION_PATCH "${CMAKE_MATCH_3}")
+	include_directories("${KOANA_ROOT_PATH}/win32/include")
 
-string(CONCAT DPP_VERSION "${DPP_VERSION_MAJOR}.${DPP_VERSION_MINOR}.${DPP_VERSION_PATCH}")
+	link_libraries("${KOANA_ROOT_PATH}/win32/lib/libssl.lib")
+	link_libraries("${KOANA_ROOT_PATH}/win32/lib/libcrypto.lib")
 
-set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${DPP_ROOT_PATH}/cmake/")
-
-if (NOT DPP_NO_VCPKG AND EXISTS "${_VCPKG_ROOT_DIR}")
-	set(PROJECT_NAME "dpp")
-	project(
-		"${PROJECT_NAME}"
-		VERSION "${DPP_VERSION}"
-		LANGUAGES CXX
-		HOMEPAGE_URL "https://dpp.dev/"
-		DESCRIPTION "An incredibly lightweight C++ Discord library."
-	)
-
-	if (MSVC AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-		set(DPP_CLANG_CL true)
-	endif()
-
-	# Required before we add any subdirectories.
-	if (DPP_BUILD_TEST)
-		enable_testing(${CMAKE_CURRENT_SOURCE_DIR})
-	endif()
-
-	add_subdirectory(library-vcpkg)
+	add_compile_definitions(OPENSSL_SYS_WIN32)
 else()
-	set(PROJECT_NAME "libdpp")
-	project(
-		"${PROJECT_NAME}"
-		VERSION "${DPP_VERSION}"
-		LANGUAGES CXX
-		HOMEPAGE_URL "https://dpp.dev/"
-		DESCRIPTION "An incredibly lightweight C++ Discord library."
-	)
+	include_directories(${OPENSSL_INCLUDE_DIR})
 
-	if (MSVC AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-		set(DPP_CLANG_CL true)
-	endif()
-
-	# Required before we add any subdirectories.
-	if (DPP_BUILD_TEST)
-		enable_testing(${CMAKE_CURRENT_SOURCE_DIR})
-	endif()
-
-	add_subdirectory(library)
+	link_libraries(${OPENSSL_SSL_LIBRARY})
+	link_libraries(${OPENSSL_CRYPTO_LIBRARY})
 endif()
+
+project(
+	libkoana
+	VERSION "${KOANA_VERSION}"
+	LANGUAGES CXX
+	DESCRIPTION "A native library for DAVE E2EE founded on the work of D++ (https://dpp.dev)"
+)
+
+set(SOURCES
+	${KOANA_SOURCE_PATH}/koana_context.cpp
+	${KOANA_SOURCE_PATH}/dave/cipher_interface.cpp
+	${KOANA_SOURCE_PATH}/dave/codec_utils.cpp
+	${KOANA_SOURCE_PATH}/dave/cryptor_manager.cpp
+	${KOANA_SOURCE_PATH}/dave/decryptor.cpp
+	${KOANA_SOURCE_PATH}/dave/encryptor.cpp
+	${KOANA_SOURCE_PATH}/dave/frame_processors.cpp
+	${KOANA_SOURCE_PATH}/dave/leb128.cpp
+	${KOANA_SOURCE_PATH}/dave/mls_key_ratchet.cpp
+	${KOANA_SOURCE_PATH}/dave/openssl_aead_cipher.cpp
+	${KOANA_SOURCE_PATH}/dave/parameters.cpp
+	${KOANA_SOURCE_PATH}/dave/persisted_key_pair_generic.cpp
+	${KOANA_SOURCE_PATH}/dave/persisted_key_pair.cpp
+	${KOANA_SOURCE_PATH}/dave/session.cpp
+	${KOANA_SOURCE_PATH}/dave/user_credential.cpp
+	${KOANA_SOURCE_PATH}/dave/util.cpp
+	${KOANA_SOURCE_PATH}/dave/version.cpp)
+
+add_subdirectory("${KOANA_ROOT_PATH}/mlspp" "mlspp")
+include_directories("${KOANA_ROOT_PATH}/mlspp/include")
+include_directories("${KOANA_ROOT_PATH}/mlspp/lib/bytes/include")
+include_directories("${KOANA_ROOT_PATH}/mlspp/lib/hpke/include")
+
+add_library(koana SHARED ${SOURCES})
+
+target_include_directories(koana PRIVATE "${KOANA_ROOT_PATH}/include")
+
+add_dependencies(koana mlspp mls_vectors bytes tls_syntax hpke)
+
+target_link_libraries(koana PRIVATE mlspp mls_vectors bytes tls_syntax hpke)
+
+target_compile_options(koana PUBLIC -O3 -Isystem)

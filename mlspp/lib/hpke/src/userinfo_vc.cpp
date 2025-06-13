@@ -1,7 +1,7 @@
 #include <hpke/base64.h>
 #include <hpke/signature.h>
 #include <hpke/userinfo_vc.h>
-#include <dpp/json.h>
+#include <nlohmann/json.hpp>
 #include <tls/compat.h>
 
 using nlohmann::json;

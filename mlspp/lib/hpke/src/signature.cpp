@@ -6,7 +6,7 @@
 #include "dhkem.h"
 #include "rsa.h"
 
-#include <dpp/json.h>
+#include <nlohmann/json.hpp>
 #include <openssl/bio.h>
 #include <openssl/bn.h>
 #include <openssl/ec.h>
