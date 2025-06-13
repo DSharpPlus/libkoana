@@ -30,6 +30,7 @@ if(WIN32)
 
 	add_compile_definitions(OPENSSL_SYS_WIN32)
 else()
+	set(OPENSSL_VERSION "3.5.0f")
 	include_directories(${OPENSSL_INCLUDE_DIR})
 
 	link_libraries(${OPENSSL_SSL_LIBRARY})
@@ -66,6 +67,7 @@ add_subdirectory("${KOANA_ROOT_PATH}/mlspp" "mlspp")
 include_directories("${KOANA_ROOT_PATH}/mlspp/include")
 include_directories("${KOANA_ROOT_PATH}/mlspp/lib/bytes/include")
 include_directories("${KOANA_ROOT_PATH}/mlspp/lib/hpke/include")
+include_directories("${KOANA_ROOT_PATH}/mlspp/lib/tls_syntax/include")
 
 add_library(koana SHARED ${SOURCES})
 
