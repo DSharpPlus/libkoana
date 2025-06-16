@@ -13,6 +13,7 @@ enum koana_error
 {
     success = 0,
     out_of_memory = 1,
+    length_mismatch = 2,
 
     encryption_failure = 100,
 

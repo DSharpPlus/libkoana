@@ -10,6 +10,9 @@
 
 using namespace dpp::dave;
 
+namespace koana
+{
+
 // represents a wrapper around a std::map<uint64_t, std::vector<uint8_t>> used to keep track of users in the MLS group.
 struct native_roster
 {
@@ -22,7 +25,7 @@ struct native_roster
 public:
     native_roster(roster_map map)
     {
-        this->error = 0;
+        this->error = success;
         this->length = map.size();
 
         this->keys = (uint64_t*)malloc(8 * this->length);
@@ -31,7 +34,7 @@ public:
 
         if (!this->values || !this->valueLengths || !this->keys)
         {
-            this->error = 1;
+            this->error = out_of_memory;
             return;
         }
 
@@ -45,7 +48,7 @@ public:
 
             if (!data)
             {
-                this->error = 1;
+                this->error = out_of_memory;
                 return;
             }
 
@@ -58,7 +61,7 @@ public:
 
         if (++i != this->length)
         {
-            this->error = 2;
+            this->error = length_mismatch;
             return;
         }
     }
@@ -82,3 +85,5 @@ k_export void koana_destroy_roster(native_roster* roster)
 {
     delete roster;
 }
+
+} // namespace

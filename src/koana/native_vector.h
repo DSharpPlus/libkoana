@@ -13,18 +13,18 @@ struct native_vector
 {
     uint8_t* data;
     int32_t length;
-    int32_t oom;
+    int32_t error;
 
 public:
     native_vector(std::vector<uint8_t> vec)
     {
         this->length = vec.size();
-        this->oom = 0;
+        this->error = success;
         this->data = (uint8_t*)malloc(this->length);
 
         if (!this->data)
         {
-            this->oom = 1;
+            this->error = out_of_memory;
             return;
         }
 
