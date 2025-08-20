@@ -59,7 +59,7 @@ public:
             ++i;
         }
 
-        if (++i != this->length)
+        if (i != this->length)
         {
             this->error = length_mismatch;
             return;
