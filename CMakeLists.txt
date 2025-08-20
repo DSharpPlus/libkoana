@@ -1,5 +1,14 @@
 cmake_minimum_required (VERSION 3.19)
 
+project(
+	libkoana
+	VERSION "${KOANA_VERSION}"
+	LANGUAGES CXX
+	DESCRIPTION "A native library for DAVE E2EE founded on the work of D++ (https://dpp.dev)"
+)
+
+set(OPENSSL_USE_STATIC_LIBS TRUE)
+
 include(${CMAKE_ROOT}/Modules/FindOpenSSL.cmake)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -19,13 +28,6 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 
 link_libraries(${OPENSSL_SSL_LIBRARY})
 link_libraries(${OPENSSL_CRYPTO_LIBRARY})
-
-project(
-	libkoana
-	VERSION "${KOANA_VERSION}"
-	LANGUAGES CXX
-	DESCRIPTION "A native library for DAVE E2EE founded on the work of D++ (https://dpp.dev)"
-)
 
 set(SOURCES
 	${KOANA_SOURCE_PATH}/koana_context.cpp
@@ -58,5 +60,9 @@ target_include_directories(koana PRIVATE "${KOANA_ROOT_PATH}/include")
 add_dependencies(koana mlspp mls_vectors bytes tls_syntax hpke)
 
 target_link_libraries(koana PRIVATE mlspp mls_vectors bytes tls_syntax hpke)
+
+if(WIN32)
+	target_link_libraries(koana PRIVATE crypt32 ws2_32)
+endif()
 
 target_compile_options(koana PUBLIC -O3 -Isystem)
