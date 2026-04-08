@@ -137,4 +137,7 @@ k_export koana_error koana_encrypt_frame
     int32_t* encrypted_size
 );
 
+// gets the maximum encrypted size for a particular unencrypted size.
+k_export int32_t koana_get_max_encrypted_size(koana_context* context, int32_t unencrypted_size);
+
 } // namespace

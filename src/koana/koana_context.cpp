@@ -198,6 +198,11 @@ k_export koana_error koana_encrypt_frame
     return success;
 }
 
+k_export int32_t koana_get_max_encrypted_size(koana_context* context, int32_t unencrypted_size)
+{
+    return context->bot_encryptor->get_max_ciphertext_byte_size(media_type::media_audio, unencrypted_size);
+}
+
 // context helper implementation
 
 void koana_context::update_cached_users(roster_map diff)
