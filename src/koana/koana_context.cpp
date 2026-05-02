@@ -246,12 +246,6 @@ void koana_context::update_cached_users(roster_map diff)
 
 void koana_context::update_user_decryptors()
 {
-    if (this->cached_users.empty())
-    {
-        this->log(ll_error, "no users were in the call when trying to update decryptors for users!");
-        return;
-    }
-
     this->log(ll_debug, ("updating decryptors for " + std::to_string(this->cached_users.size()) + " users").c_str());
 
     for (const auto&[id, key] : this->cached_users)
